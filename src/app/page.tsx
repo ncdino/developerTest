@@ -1,103 +1,131 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { observer } from "mobx-react-lite";
+import Link from "next/link";
+import userStore from "@/src/app/_stores/userStore";
+import historyStore from "@/src/app/_stores/historyStore";
+import { useState } from "react";
+
+const HomePage = observer(() => {
+  const [lastViewedPostIsOpen, setLastViewedPostIsOpen] = useState(true);
+
+  const formatTimeAgo = (timestamp: number): string => {
+    const now = Date.now();
+    const secondsPast = (now - timestamp) / 1000;
+
+    if (secondsPast < 60) return "방금 전";
+    const minutesPast = secondsPast / 60;
+    if (minutesPast < 60) return `${Math.round(minutesPast)}분 전`;
+    const hoursPast = minutesPast / 60;
+    if (hoursPast < 24) return `${Math.round(hoursPast)}시간 전`;
+    const daysPast = hoursPast / 24;
+    return `${Math.round(daysPast)}일 전`;
+  };
+
+  const handleLastViewedPostIsOpen = () => {
+    setLastViewedPostIsOpen(!lastViewedPostIsOpen);
+  };
+
+  const { lastViewedPost } = historyStore;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] text-center px-4 py-8">
+      {userStore.isLoggedIn ? (
+        <div className="w-full max-w-3xl">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-6">
+            안녕하세요,
+            <span className="text-blue-600"> {userStore.user?.name}</span>님
+          </h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/posts"
+            className="block w-full md:w-fit mx-auto bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-blue-700 transition-transform transform hover:scale-105 mb-10"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            게시판으로 이동
+          </Link>
+
+          <div className="w-full text-left">
+            <div className="flex justify-between items-center">
+              <h2 className="text-base sm:text-lg text-neutral-600 font-semibold mb-4">
+                최근에 읽은 글
+              </h2>
+              <button
+                onClick={handleLastViewedPostIsOpen}
+                className="text-sm text-blue-500 mb-4 hover:underline"
+              >
+                {lastViewedPostIsOpen ? "닫기" : "열기"}
+              </button>
+            </div>
+
+            {lastViewedPost ? (
+              <div
+                className={`transition-opacity duration-300 ${
+                  lastViewedPostIsOpen
+                    ? "opacity-100 visible"
+                    : "opacity-0 invisible"
+                }`}
+              >
+                <Link
+                  href={lastViewedPost.href}
+                  className="block p-4 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div className="flex gap-3 items-center">
+                      <span
+                        className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                          lastViewedPost.category === "NOTICE"
+                            ? "bg-indigo-100 text-indigo-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {lastViewedPost.category}
+                      </span>
+                      <p className="font-medium text-gray-900 truncate">
+                        {lastViewedPost.title}
+                      </p>
+                    </div>
+                    <span className="text-sm text-gray-500 whitespace-nowrap ml-auto">
+                      {formatTimeAgo(lastViewedPost.readAt)}에 읽음
+                    </span>
+                  </div>
+                </Link>
+              </div>
+            ) : (
+              <div
+                className={`mt-8 text-gray-500 text-sm transition-opacity duration-300 ${
+                  lastViewedPostIsOpen
+                    ? "opacity-100 visible"
+                    : "opacity-0 invisible"
+                }`}
+              >
+                최근에 읽은 글이 없습니다.
+              </div>
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : (
+        <div className="w-full max-w-sm text-center">
+          <h1 className="text-xl md:text-2xl text-gray-600 mb-6">
+            서비스를 이용하시려면 로그인이 필요합니다.
+          </h1>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/signin"
+              className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold shadow hover:bg-green-600"
+            >
+              로그인
+            </Link>
+            <Link
+              href="/signup"
+              className="w-full sm:w-auto px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold shadow"
+            >
+              회원가입
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+});
+
+export default HomePage;
