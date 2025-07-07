@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import userStore from "../_stores/userStore";
+import { log } from "@/src/utils/devLogger";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ const AuthGuard = observer(({ children }: AuthGuardProps) => {
     setIsMounted(true);
   }, []);
 
-  console.log(
+  log(
     `[AuthGuard] 렌더링! isMounted: ${isMounted}, isInitializing: ${userStore.isInitializing}, isLoggedIn: ${userStore.isLoggedIn}`
   );
 

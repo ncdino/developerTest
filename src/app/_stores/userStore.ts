@@ -1,6 +1,6 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { jwtDecode } from "jwt-decode";
-import axios, { AxiosError } from "axios";
+import { AxiosError, AxiosRequestConfig } from "axios";
 import api from "@/src/app/_lib/api";
 import { SignUpData, SignInData } from "@/src/app/_services/authService";
 import { SecureStorage } from "@/src/app/_utils/crypto";
@@ -16,6 +16,20 @@ interface JwtPayload {
   name: string;
   iat: number;
   exp: number;
+}
+
+interface AxiosRequestConfigWithRetry extends AxiosRequestConfig {
+  _retry?: boolean;
+}
+
+interface ErrorResponse {
+  response?: {
+    data?: {
+      message?: string;
+    };
+    status?: number;
+  };
+  message?: string;
 }
 
 class UserStore {
@@ -42,7 +56,7 @@ class UserStore {
         log("API 요청");
         log(`[토큰 상태] accessToken 존재: ${!!this.accessToken}`);
 
-        // 토큰 만료 체크
+        // 토큰 만료 체크
         if (this.accessToken && this.isTokenExpired()) {
           log(`[토큰 만료] 요청 전 토큰 만료 감지`);
           this.handleTokenExpiration();
@@ -61,20 +75,20 @@ class UserStore {
     );
 
     // 401 에러 -> 토큰 재발급 처리(응답 인터셉터)
-    let refreshTokenPromise: Promise<any> | null = null;
+    let refreshTokenPromise: Promise<unknown> | null = null;
     api.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const originalRequest = error.config;
+        const originalRequest = error.config as AxiosRequestConfigWithRetry;
         log(`[API 에러] ${error.response?.status} - ${error.config?.url}`);
 
         if (
           error.response?.status === 401 &&
           originalRequest &&
-          !(originalRequest as any)._retry &&
+          !originalRequest._retry &&
           this.isLoggedIn
         ) {
-          (originalRequest as any)._retry = true;
+          originalRequest._retry = true;
           log(`[토큰 재발급] 401 에러로 인한 토큰 재발급 시도`);
 
           if (!refreshTokenPromise) {
@@ -166,15 +180,16 @@ class UserStore {
     try {
       await api.post("/auth/signup", data);
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = error as ErrorResponse;
       console.error(
         "회원가입 실패:",
-        error.response?.data?.message || error.message
+        errorResponse.response?.data?.message || errorResponse.message
       );
       return {
         success: false,
         message:
-          error.response?.data?.message ||
+          errorResponse.response?.data?.message ||
           "중복된 계정이 있거나, 알 수 없는 에러입니다.",
       };
     }
@@ -186,11 +201,15 @@ class UserStore {
       const { accessToken, refreshToken } = response.data;
       this.login(accessToken, refreshToken);
       return { success: true };
-    } catch (error: any) {
-      error("로그인 실패:", error.response?.data?.message || error.message);
+    } catch (error: unknown) {
+      const errorResponse = error as ErrorResponse;
+      console.error(
+        "로그인 실패:",
+        errorResponse.response?.data?.message || errorResponse.message
+      );
       return {
         success: false,
-        message: error.response?.data?.message || "알 수 없는 에러",
+        message: errorResponse.response?.data?.message || "알 수 없는 에러",
       };
     }
   }
@@ -302,7 +321,7 @@ class UserStore {
       runInAction(() => {
         this.hasShownExtendPrompt = false;
       });
-    } catch (error) {
+    } catch {
       log("[로그아웃] 성공");
       this.handleTokenExpiration();
     }

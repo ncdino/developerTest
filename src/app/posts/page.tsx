@@ -10,6 +10,16 @@ import AuthGuard from "@/src/app/_components/AuthGuard";
 const PostsContent = () => {
   const [page, setPage] = useState(0);
 
+  interface ErrorResponse {
+    response?: {
+      data?: {
+        message?: string;
+      };
+      status?: number;
+    };
+    message?: string;
+  }
+
   const {
     data: postsData,
     isLoading,
@@ -18,7 +28,7 @@ const PostsContent = () => {
   } = useQuery({
     queryKey: ["posts", page],
     queryFn: () => getPosts(page, 10),
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: ErrorResponse) => {
       if (error.response?.status === 401 || error.response?.status === 403)
         return false;
       return failureCount < 2;

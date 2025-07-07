@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { observer } from "mobx-react-lite";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -17,6 +18,16 @@ const PostDetailContent = observer(() => {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
 
+  interface ErrorResponse {
+    response?: {
+      data?: {
+        message?: string;
+      };
+      status?: number;
+    };
+    message?: string;
+  }
+  
   const {
     data: post,
     isLoading,
@@ -29,7 +40,7 @@ const PostDetailContent = observer(() => {
       return getPostById(id);
     },
     enabled: !!id,
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: ErrorResponse) => {
       if (error.response?.status === 401 || error.response?.status === 403)
         return false;
       return failureCount < 2;
@@ -50,7 +61,7 @@ const PostDetailContent = observer(() => {
       if (id) queryClient.invalidateQueries({ queryKey: ["post", id] });
       router.push("/posts");
     },
-    onError: (err) => {
+    onError: (err: Error) => {
       alert(`삭제 실패했습니다: ${err.message}`);
     },
   });
@@ -65,7 +76,7 @@ const PostDetailContent = observer(() => {
     return <div className="text-center py-10">게시물을 불러오는 중...</div>;
   }
   if (isError) {
-    return <div className="text-center py-10">에러: {error.message}</div>;
+    return <div className="text-center py-10">에러: {error?.message}</div>;
   }
   if (!post) {
     return <div className="text-center py-10">게시물이 존재하지 않습니다.</div>;
@@ -125,10 +136,13 @@ const PostDetailContent = observer(() => {
       </div>
       {imageUrl && (
         <div className="my-8">
-          <img
+          <Image
             src={imageUrl}
             alt={post.title}
+            width={800}
+            height={800}
             className="w-full max-h-[800px] object-contain rounded-lg shadow-sm"
+            style={{ width: 'auto', height: 'auto' }}
           />
         </div>
       )}

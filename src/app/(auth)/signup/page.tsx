@@ -34,7 +34,7 @@ const SignUpPage = () => {
     } else {
       setIsUsernameValid(true);
     }
-  }, [formData.username]);
+  }, [formData]);
 
   useEffect(() => {
     const { password } = formData;
@@ -44,7 +44,7 @@ const SignUpPage = () => {
       number: /\d/.test(password),
       special: /[^a-zA-Z0-9]/.test(password),
     });
-  }, [formData.password]);
+  }, [formData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

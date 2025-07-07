@@ -38,11 +38,11 @@ const Header = observer(() => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [userStore.isLoggedIn, userStore.tokenExp]);
+  }, []);
 
   useEffect(() => {
     hasShownWarningRef.current = false;
-  }, [userStore.tokenExp]);
+  }, []);
 
   const handleExtendSession = async () => {
     setShowExtendModal(false);
